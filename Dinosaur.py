@@ -13,7 +13,7 @@ GROUND_HEIGHT = 300
 FPS = 60
 GRAVITY = 1
 JUMP_STRENGTH = -18
-GAME_SPEED_START = 5
+GAME_SPEED_START = 10
 GAME_SPEED_INCREMENT = 0.0025
 BIRD_SPAWN_SCORE = 700
 
@@ -169,9 +169,9 @@ class Cactus:
 class Bird:
     def __init__(self, x):
         self.x = x
-        self.y = random.choice([GROUND_HEIGHT - 70, GROUND_HEIGHT - 50, GROUND_HEIGHT - 30])
+        self.y = random.choice([GROUND_HEIGHT - 100, GROUND_HEIGHT - 50, GROUND_HEIGHT - 30])
         self.width = 60
-        self.height = 30
+        self.height = 50
         self.current_frame = 0
         self.animation_count = 0
     
@@ -214,7 +214,7 @@ class Ground:
     def __init__(self):
         self.x = 0
         self.width = SCREEN_WIDTH * 2
-        self.height = 20
+        self.height = 100
     
     def update(self, game_speed):
         self.x -= game_speed
