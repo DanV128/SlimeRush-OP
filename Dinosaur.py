@@ -2,6 +2,7 @@ import pygame
 import random
 import sys
 import json
+import os
 
 # Initialize pygame
 pygame.init()
@@ -32,6 +33,57 @@ clock = pygame.time.Clock()
 
 # High score file
 HIGH_SCORE_FILE = "highscore.json"
+
+# Load images
+def load_image(name, scale=1):
+    try:
+        image = pygame.image.load(f"assets/{name}.png").convert_alpha()
+    except:
+        # Create a placeholder if image loading fails
+        image = pygame.Surface((50, 50), pygame.SRCALPHA)
+        pygame.draw.rect(image, (255, 0, 255), (0, 0, 50, 50))
+        pygame.draw.line(image, (0, 0, 0), (0, 0), (50, 50), 2)
+        pygame.draw.line(image, (0, 0, 0), (50, 0), (0, 50), 2)
+    
+    if scale != 1:
+        new_size = (int(image.get_width() * scale), int(image.get_height() * scale))
+        image = pygame.transform.scale(image, new_size)
+    return image
+
+# Try to create assets directory if it doesn't exist
+if not os.path.exists("assets"):
+    os.makedirs("assets")
+
+# Load or create placeholder images
+try:
+    # Dino sprites
+    dino_run1 = load_image("dino_run1", 0.7)
+    dino_run2 = load_image("dino_run2", 0.7)
+    dino_duck1 = load_image("dino_duck1", 0.7)
+    dino_duck2 = load_image("dino_duck2", 0.7)
+    dino_jump = load_image("dino_jump", 0.7)
+    dino_dead = load_image("dino_dead", 0.7)
+    
+    # Obstacle sprites
+    cactus_small = load_image("cactus_small", 0.7)
+    cactus_large = load_image("cactus_large", 0.7)
+    cactus_multi = load_image("cactus_multi", 0.7)
+    
+    # Bird sprites
+    bird_frame1 = load_image("bird_frame1", 0.7)
+    bird_frame2 = load_image("bird_frame2", 0.7)
+    
+    # Environment sprites
+    cloud_img = load_image("cloud", 0.7)
+    ground_img = load_image("ground", 2.0)
+    
+    # Game UI
+    game_over_img = load_image("game_over", 0.8)
+    restart_img = load_image("restart", 0.8)
+    
+except Exception as e:
+    print(f"Error loading images: {e}")
+    # If image loading fails, the game will fall back to primitive shapes
 
 def load_high_score():
     try:
@@ -64,6 +116,12 @@ class Dinosaur:
         self.width = 60
         self.height = 80
         self.duck_height = 40
+        
+        # Image dimensions
+        self.run_images = [dino_run1, dino_run2]
+        self.duck_images = [dino_duck1, dino_duck2]
+        self.jump_image = dino_jump
+        self.dead_image = dino_dead
     
     def update(self):
         # Apply gravity
@@ -100,34 +158,42 @@ class Dinosaur:
     def draw(self, screen):
         if self.dead:
             # Dead dino
-            pygame.draw.rect(screen, BLACK, (self.x, self.y - self.height, self.width, self.height))
-            pygame.draw.line(screen, (255, 0, 0), (self.x, self.y - self.height), 
-                           (self.x + self.width, self.y), 3)
+            screen.blit(self.dead_image, (self.x, self.y - self.dead_image.get_height()))
         elif self.is_jumping:
             # Jumping dino
-            pygame.draw.rect(screen, BLACK, (self.x, self.y - self.height, self.width, self.height))
+            screen.blit(self.jump_image, (self.x, self.y - self.jump_image.get_height()))
         elif self.is_ducking:
             # Ducking dino with animation
-            if self.current_frame == 0:
-                pygame.draw.rect(screen, BLACK, (self.x, self.y - self.duck_height, self.width, self.duck_height))
-            else:
-                pygame.draw.rect(screen, BLACK, (self.x, self.y - self.duck_height + 5, self.width, self.duck_height - 5))
+            screen.blit(self.duck_images[self.current_frame], 
+                       (self.x, self.y - self.duck_images[self.current_frame].get_height()))
         else:
             # Running dino with animation
-            if self.current_frame == 0:
-                pygame.draw.rect(screen, BLACK, (self.x, self.y - self.height, self.width, self.height))
-            else:
-                pygame.draw.rect(screen, BLACK, (self.x, self.y - self.height + 5, self.width, self.height - 5))
+            screen.blit(self.run_images[self.current_frame], 
+                       (self.x, self.y - self.run_images[self.current_frame].get_height()))
     
     def get_mask(self):
-        mask_surface = pygame.Surface((self.width, self.height if not self.is_ducking else self.duck_height), pygame.SRCALPHA)
-        mask_surface.fill((255, 255, 255, 255))
-        return pygame.mask.from_surface(mask_surface)
+        if self.is_ducking:
+            img = self.duck_images[self.current_frame]
+        elif self.is_jumping:
+            img = self.jump_image
+        elif self.dead:
+            img = self.dead_image
+        else:
+            img = self.run_images[self.current_frame]
+        
+        return pygame.mask.from_surface(img)
     
     def get_rect(self):
         if self.is_ducking:
-            return pygame.Rect(self.x, self.y - self.duck_height, self.width, self.duck_height)
-        return pygame.Rect(self.x, self.y - self.height, self.width, self.height)
+            img = self.duck_images[self.current_frame]
+        elif self.is_jumping:
+            img = self.jump_image
+        elif self.dead:
+            img = self.dead_image
+        else:
+            img = self.run_images[self.current_frame]
+        
+        return pygame.Rect(self.x, self.y - img.get_height(), img.get_width(), img.get_height())
 
 class Cactus:
     def __init__(self, x):
@@ -135,31 +201,21 @@ class Cactus:
         self.type = random.choice(["small", "large", "multi"])
         
         if self.type == "small":
-            self.width = 30
-            self.height = 60
-            self.y = GROUND_HEIGHT - self.height
+            self.image = cactus_small
         elif self.type == "large":
-            self.width = 40
-            self.height = 80
-            self.y = GROUND_HEIGHT - self.height
+            self.image = cactus_large
         else:
-            self.width = 60
-            self.height = 70
-            self.y = GROUND_HEIGHT - self.height
+            self.image = cactus_multi
+        
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.y = GROUND_HEIGHT - self.height
     
     def update(self, game_speed):
         self.x -= game_speed
     
     def draw(self, screen):
-        if self.type == "small":
-            pygame.draw.rect(screen, (0, 100, 0), (self.x, self.y, self.width, self.height))
-        elif self.type == "large":
-            pygame.draw.rect(screen, (0, 120, 0), (self.x, self.y, self.width, self.height))
-        else:
-            # Multi-part cactus
-            pygame.draw.rect(screen, (0, 110, 0), (self.x, self.y + 20, 20, self.height - 20))
-            pygame.draw.rect(screen, (0, 110, 0), (self.x + 15, self.y, 20, self.height))
-            pygame.draw.rect(screen, (0, 110, 0), (self.x + 35, self.y + 10, 20, self.height - 10))
+        screen.blit(self.image, (self.x, self.y))
     
     def collide(self, dino):
         dino_rect = dino.get_rect()
@@ -170,10 +226,11 @@ class Bird:
     def __init__(self, x):
         self.x = x
         self.y = random.choice([GROUND_HEIGHT - 100, GROUND_HEIGHT - 50, GROUND_HEIGHT - 30])
-        self.width = 60
-        self.height = 50
+        self.images = [bird_frame1, bird_frame2]
         self.current_frame = 0
         self.animation_count = 0
+        self.width = self.images[0].get_width()
+        self.height = self.images[0].get_height()
     
     def update(self, game_speed):
         self.x -= game_speed * 1.2  # Birds move slightly faster
@@ -183,13 +240,7 @@ class Bird:
             self.animation_count = 0
     
     def draw(self, screen):
-        # Draw bird with wing animation
-        if self.current_frame == 0:
-            # Wings up
-            pygame.draw.ellipse(screen, (100, 100, 100), (self.x, self.y - self.height, self.width, self.height))
-        else:
-            # Wings down
-            pygame.draw.ellipse(screen, (100, 100, 100), (self.x, self.y - self.height + 10, self.width, self.height - 10))
+        screen.blit(self.images[self.current_frame], (self.x, self.y - self.height))
     
     def collide(self, dino):
         dino_rect = dino.get_rect()
@@ -201,20 +252,22 @@ class Cloud:
         self.x = SCREEN_WIDTH
         self.y = random.randint(50, 150)
         self.speed = random.uniform(0.5, 1.5)
-        self.width = random.randint(60, 120)
-        self.height = 30
+        self.image = cloud_img
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
     
     def update(self):
         self.x -= self.speed
     
     def draw(self, screen):
-        pygame.draw.ellipse(screen, (240, 240, 240), (self.x, self.y, self.width, self.height))
+        screen.blit(self.image, (self.x, self.y))
 
 class Ground:
     def __init__(self):
         self.x = 0
-        self.width = SCREEN_WIDTH * 2
-        self.height = 100
+        self.image = ground_img
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
     
     def update(self, game_speed):
         self.x -= game_speed
@@ -222,15 +275,9 @@ class Ground:
             self.x = 0
     
     def draw(self, screen):
-        # Draw ground with texture
-        pygame.draw.rect(screen, GROUND_COLOR, (self.x, GROUND_HEIGHT, self.width, self.height))
-        
-        # Draw ground details
-        for i in range(0, int(self.width), 30):
-            offset = random.randint(-5, 5)
-            pygame.draw.line(screen, (210, 180, 140), 
-                           (self.x + i, GROUND_HEIGHT + 5 + offset),
-                           (self.x + i + 15, GROUND_HEIGHT + 5 + offset), 2)
+        # Draw repeating ground image
+        screen.blit(self.image, (self.x, GROUND_HEIGHT))
+        screen.blit(self.image, (self.x + self.width, GROUND_HEIGHT))
 
 def draw_score(screen, score, high_score):
     score_text = font_medium.render(f"SCORE: {score}", True, SCORE_COLOR)
@@ -248,13 +295,14 @@ def draw_game_over(screen, score):
     screen.blit(overlay, (0, 0))
     
     # Game over text
-    game_over_text = font_large.render("GAME OVER", True, WHITE)
-    restart_text = font_medium.render("Press SPACE to restart", True, WHITE)
-    score_text = font_medium.render(f"Your Score: {score}", True, WHITE)
+    screen.blit(game_over_img, (SCREEN_WIDTH // 2 - game_over_img.get_width() // 2, 150))
     
-    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, 150))
+    # Score text
+    score_text = font_medium.render(f"Your Score: {score}", True, WHITE)
     screen.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, 220))
-    screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, 270))
+    
+    # Restart prompt
+    screen.blit(restart_img, (SCREEN_WIDTH // 2 - restart_img.get_width() // 2, 270))
 
 def draw_start_screen(screen):
     # Dark overlay
