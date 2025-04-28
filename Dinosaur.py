@@ -16,7 +16,7 @@ GRAVITY = 1
 JUMP_STRENGTH = -18
 GAME_SPEED_START = 10
 GAME_SPEED_INCREMENT = 0.0025
-BIRD_SPAWN_SCORE = 700
+FIREBALL_SPAWN_SCORE = 700
 
 # Colors
 WHITE = (255, 255, 255)
@@ -28,7 +28,7 @@ SCORE_COLOR = (83, 83, 83)
 
 # Set up the display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Chrome Dinosaur Game")
+pygame.display.set_caption("Slime Rush")
 clock = pygame.time.Clock()
 
 # High score file
@@ -56,22 +56,22 @@ if not os.path.exists("assets"):
 
 # Load or create placeholder images
 try:
-    # Dino sprites
-    dino_run1 = load_image("dino_run1", 0.7)
-    dino_run2 = load_image("dino_run2", 0.7)
-    dino_duck1 = load_image("dino_duck1", 0.7)
-    dino_duck2 = load_image("dino_duck2", 0.7)
-    dino_jump = load_image("dino_jump", 0.7)
-    dino_dead = load_image("dino_dead", 0.7)
+    # Slime sprites
+    slime_run1 = load_image("slime_run1", 0.7)
+    slime_run2 = load_image("slime_run2", 0.7)
+    slime_duck1 = load_image("slime_run2", 0.7)
+    slime_duck2 = load_image("slime_run2", 0.7)
+    slime_jump = load_image("slime_jump", 0.7)
+    slime_dead = load_image("slime_dead", 0.7)
     
     # Obstacle sprites
-    cactus_small = load_image("cactus_small", 0.7)
-    cactus_large = load_image("cactus_large", 0.7)
-    cactus_multi = load_image("cactus_multi", 0.7)
+    spike_small = load_image("spike_small", 0.7)
+    spike_large = load_image("spike_large", 0.7)
+    spike_multi = load_image("spike_multi", 0.7)
     
-    # Bird sprites
-    bird_frame1 = load_image("bird_frame1", 0.7)
-    bird_frame2 = load_image("bird_frame2", 0.7)
+    # Fireball sprites
+    fireball_frame1 = load_image("fireball_frame1", 0.7)
+    fireball_frame2 = load_image("fireball_frame2", 0.7)
     
     # Environment sprites
     cloud_img = load_image("cloud", 0.7)
@@ -103,7 +103,7 @@ font_medium = pygame.font.SysFont("Arial", 30, bold=True)
 font_large = pygame.font.SysFont("Arial", 50, bold=True)
 
 # Game objects
-class Dinosaur:
+class Slime:
     def __init__(self):
         self.x = 50
         self.y = GROUND_HEIGHT
@@ -118,10 +118,10 @@ class Dinosaur:
         self.duck_height = 40
         
         # Image dimensions
-        self.run_images = [dino_run1, dino_run2]
-        self.duck_images = [dino_duck1, dino_duck2]
-        self.jump_image = dino_jump
-        self.dead_image = dino_dead
+        self.run_images = [slime_run1, slime_run2]
+        self.duck_images = [slime_duck1, slime_duck2]
+        self.jump_image = slime_jump
+        self.dead_image = slime_dead
     
     def update(self):
         # Apply gravity
@@ -157,17 +157,17 @@ class Dinosaur:
     
     def draw(self, screen):
         if self.dead:
-            # Dead dino
+            # Dead slime
             screen.blit(self.dead_image, (self.x, self.y - self.dead_image.get_height()))
         elif self.is_jumping:
-            # Jumping dino
+            # Jumping slime
             screen.blit(self.jump_image, (self.x, self.y - self.jump_image.get_height()))
         elif self.is_ducking:
-            # Ducking dino with animation
+            # Ducking slime with animation
             screen.blit(self.duck_images[self.current_frame], 
                        (self.x, self.y - self.duck_images[self.current_frame].get_height()))
         else:
-            # Running dino with animation
+            # Running slime with animation
             screen.blit(self.run_images[self.current_frame], 
                        (self.x, self.y - self.run_images[self.current_frame].get_height()))
     
@@ -195,17 +195,17 @@ class Dinosaur:
         
         return pygame.Rect(self.x, self.y - img.get_height(), img.get_width(), img.get_height())
 
-class Cactus:
+class Spike:
     def __init__(self, x):
         self.x = x
         self.type = random.choice(["small", "large", "multi"])
         
         if self.type == "small":
-            self.image = cactus_small
+            self.image = spike_small
         elif self.type == "large":
-            self.image = cactus_large
+            self.image = spike_large
         else:
-            self.image = cactus_multi
+            self.image = spike_multi
         
         self.width = self.image.get_width()
         self.height = self.image.get_height()
@@ -217,23 +217,23 @@ class Cactus:
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
     
-    def collide(self, dino):
-        dino_rect = dino.get_rect()
-        cactus_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        return dino_rect.colliderect(cactus_rect)
+    def collide(self, slime):
+        slime_rect = slime.get_rect()
+        spike_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        return slime_rect.colliderect(spike_rect)
 
-class Bird:
+class Fireball:
     def __init__(self, x):
         self.x = x
         self.y = random.choice([GROUND_HEIGHT - 100, GROUND_HEIGHT - 50, GROUND_HEIGHT - 30])
-        self.images = [bird_frame1, bird_frame2]
+        self.images = [fireball_frame1, fireball_frame2]
         self.current_frame = 0
         self.animation_count = 0
         self.width = self.images[0].get_width()
         self.height = self.images[0].get_height()
     
     def update(self, game_speed):
-        self.x -= game_speed * 1.2  # Birds move slightly faster
+        self.x -= game_speed * 1.2  # Fireballs move slightly faster
         self.animation_count += 1
         if self.animation_count >= 10:
             self.current_frame = 1 - self.current_frame
@@ -242,10 +242,10 @@ class Bird:
     def draw(self, screen):
         screen.blit(self.images[self.current_frame], (self.x, self.y - self.height))
     
-    def collide(self, dino):
-        dino_rect = dino.get_rect()
-        bird_rect = pygame.Rect(self.x, self.y - self.height, self.width, self.height)
-        return dino_rect.colliderect(bird_rect)
+    def collide(self, slime):
+        slime_rect = slime.get_rect()
+        fireball_rect = pygame.Rect(self.x, self.y - self.height, self.width, self.height)
+        return slime_rect.colliderect(fireball_rect)
 
 class Cloud:
     def __init__(self):
@@ -311,7 +311,7 @@ def draw_start_screen(screen):
     screen.blit(overlay, (0, 0))
     
     # Game title
-    title_text = font_large.render("DINO RUNNER", True, WHITE)
+    title_text = font_large.render("SLIME RUSH", True, WHITE)
     start_text = font_medium.render("Press SPACE to start", True, WHITE)
     controls_text = font_small.render("UP to jump | DOWN to crouch", True, WHITE)
     
@@ -324,7 +324,7 @@ def main():
     high_score = load_high_score()
     
     # Game variables
-    dino = Dinosaur()
+    slime = Slime()
     ground = Ground()
     clouds = []
     obstacles = []
@@ -348,7 +348,7 @@ def main():
                         game_started = True
                     elif game_over:
                         # Reset game
-                        dino = Dinosaur()
+                        slime = Slime()
                         obstacles = []
                         clouds = []
                         game_speed = GAME_SPEED_START
@@ -356,26 +356,26 @@ def main():
                         game_over = False
                         game_started = True
                     else:
-                        dino.jump()
+                        slime.jump()
                 elif event.key == pygame.K_DOWN:
-                    dino.duck(True)
+                    slime.duck(True)
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_DOWN:
-                    dino.duck(False)
+                    slime.duck(False)
         
         # Fill background
         screen.fill(SKY_COLOR)
         
         if game_started and not game_over:
             # Update game state
-            dino.update()
+            slime.update()
             ground.update(game_speed)
             
             # Update obstacles
             for obstacle in obstacles:
                 obstacle.update(game_speed)
-                if obstacle.collide(dino):
-                    dino.dead = True
+                if obstacle.collide(slime):
+                    slime.dead = True
                     game_over = True
                     if score > high_score:
                         high_score = score
@@ -387,11 +387,11 @@ def main():
             # Spawn new obstacles
             obstacle_timer += 1
             if obstacle_timer >= random.randint(50, 150):
-                # Only spawn birds after reaching BIRD_SPAWN_SCORE
-                if score >= BIRD_SPAWN_SCORE and random.random() < 0.3:
-                    obstacles.append(Bird(SCREEN_WIDTH))
+                # Only spawn fireballs after reaching FIREBALL_SPAWN_SCORE
+                if score >= FIREBALL_SPAWN_SCORE and random.random() < 0.3:
+                    obstacles.append(Fireball(SCREEN_WIDTH))
                 else:
-                    obstacles.append(Cactus(SCREEN_WIDTH))
+                    obstacles.append(Spike(SCREEN_WIDTH))
                 obstacle_timer = 0
             
             # Update clouds
@@ -423,8 +423,8 @@ def main():
         for obstacle in obstacles:
             obstacle.draw(screen)
         
-        # Draw dino
-        dino.draw(screen)
+        # Draw slime
+        slime.draw(screen)
         
         # Draw score
         if game_started and not game_over:
