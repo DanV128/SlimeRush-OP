@@ -2,7 +2,7 @@ import pygame
 import random
 import sys
 import json
-import os
+
 
 # Initialize pygame
 pygame.init()
@@ -30,6 +30,8 @@ SCORE_COLOR = (83, 83, 83)
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Slime Rush")
 clock = pygame.time.Clock()
+icon = pygame.image.load("assets/icon.png") 
+pygame.display.set_icon(icon)
 
 # High score file
 HIGH_SCORE_FILE = "highscore.json"
@@ -48,8 +50,7 @@ def load_image(name, scale=1):
         image = pygame.transform.scale(image, new_size)
     return image
 
-if not os.path.exists("assets"):
-    os.makedirs("assets")
+
 
 try:
     slime_run1 = load_image("slime_run1", 0.7)
@@ -87,9 +88,9 @@ def save_high_score(high_score):
     with open(HIGH_SCORE_FILE, 'w') as f:
         json.dump({'high_score': high_score}, f)
 
-font_small = pygame.font.SysFont("Arial", 20)
-font_medium = pygame.font.SysFont("Arial", 30, bold=True)
-font_large = pygame.font.SysFont("Arial", 50, bold=True)
+font_small = pygame.font.SysFont("Tiny5-Regular", 20)
+font_medium = pygame.font.SysFont("Tiny5-Regular", 40, bold=False)
+font_large = pygame.font.SysFont("Tiny5-Regular", 60, bold=False)
 
 class Slime:
     def __init__(self):
@@ -270,9 +271,18 @@ def draw_score(screen, score, high_score):
     score_text = font_medium.render(f"SCORE: {score}", True, SCORE_COLOR)
     high_score_text = font_medium.render(f"HIGH SCORE: {high_score}", True, SCORE_COLOR)
     
-    pygame.draw.rect(screen, (240, 240, 240, 150), (SCREEN_WIDTH - 250, 10, 240, 90), border_radius=5)
-    screen.blit(score_text, (SCREEN_WIDTH - 240, 20))
-    screen.blit(high_score_text, (SCREEN_WIDTH - 240, 50))
+    # Calculate the required width based on the longest text
+    panel_width = max(score_text.get_width(), high_score_text.get_width()) + 40
+    panel_x = SCREEN_WIDTH - panel_width - 10
+    
+    # Draw semi-transparent background panel
+    pygame.draw.rect(screen, (240, 240, 240, 150), 
+                    (panel_x, 10, panel_width, 80), 
+                    border_radius=5)
+    
+    # Draw texts with proper alignment
+    screen.blit(score_text, (panel_x + 20, 20))
+    screen.blit(high_score_text, (panel_x + 20, 50))
 
 def draw_game_over(screen, score):
     overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
